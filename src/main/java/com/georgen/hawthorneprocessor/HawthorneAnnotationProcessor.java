@@ -1,6 +1,7 @@
 package com.georgen.hawthorneprocessor;
 
 import javax.annotation.processing.*;
+import javax.lang.model.SourceVersion;
 import javax.lang.model.element.*;
 import javax.lang.model.type.DeclaredType;
 import javax.lang.model.util.ElementFilter;
@@ -38,7 +39,7 @@ public class HawthorneAnnotationProcessor extends AbstractProcessor {
         this.singletonEntityElement = elementUtils.getTypeElement("com.georgen.hawthorne.api.annotations.SingletonEntity");
         this.entityCollectionElement = elementUtils.getTypeElement("com.georgen.hawthorne.api.annotations.EntityCollection");
         this.idElement = elementUtils.getTypeElement("com.georgen.hawthorne.api.annotations.Id");
-        this.idElement = elementUtils.getTypeElement("com.georgen.hawthorne.api.annotations.BinaryData");
+        this.binaryDataElement = elementUtils.getTypeElement("com.georgen.hawthorne.api.annotations.BinaryData");
     }
 
     @Override
@@ -63,7 +64,7 @@ public class HawthorneAnnotationProcessor extends AbstractProcessor {
         List<VariableElement> fields = ElementFilter.fieldsIn(enclosedElements);
 
         processClassAnnotations(element, fields);
-        processFieldAnnotations(fields);
+        processFieldAnnotations(element);
     }
 
     private void processClassAnnotations(Element element, List<VariableElement> fields){
@@ -102,23 +103,15 @@ public class HawthorneAnnotationProcessor extends AbstractProcessor {
         }
     }
 
-    private void processFieldAnnotations(List<VariableElement> fields){
-        for (VariableElement field : fields){
-            List<? extends AnnotationMirror> annotations = field.getAnnotationMirrors();
-
-            if (hasAnnotation(annotations, this.idElement)){
-                processId(field);
-            }
-
-            if (hasAnnotation(annotations, this.binaryDataElement)){
-                processBinaryData(field);
-            }
-        }
+    private void processFieldAnnotations(Element element){
+        if (hasAnnotation(element, this.idElement)) processId(element);
+        if (hasAnnotation(element, this.binaryDataElement)) processBinaryData(element);
     }
 
     private void processId(Element element){
         Element enclosingElement = element.getEnclosingElement();
         List<? extends AnnotationMirror> annotations = enclosingElement.getAnnotationMirrors();
+
         if (!hasAnnotation(annotations, this.entityCollectionElement)){
             printMessage(ID_HAS_NO_ENTITY_COLLECTION, element);
         }
@@ -130,33 +123,42 @@ public class HawthorneAnnotationProcessor extends AbstractProcessor {
         }
     }
 
-    private boolean isSingletonEntity(Element element){
-        return element.equals(this.singletonEntityElement);
-    }
+    private boolean isSingletonEntity(Element element){ return this.singletonEntityElement.equals(element); }
 
-    private boolean isEntityCollection(Element element){
-        return element.equals(this.entityCollectionElement);
-    }
+    private boolean isEntityCollection(Element element){ return this.entityCollectionElement.equals(element); }
 
     private boolean isInClassWithEntityAnnotation(Element element){
         Element enclosingElement = element.getEnclosingElement();
         List<? extends AnnotationMirror> annotations = enclosingElement.getAnnotationMirrors();
 
-        if (hasAnnotation(annotations, this.entityCollectionElement)) return true;
-        if (hasAnnotation(annotations, this.singletonEntityElement)) return true;
+        boolean hasEntityCollectionAnnotation = hasAnnotation(annotations, this.entityCollectionElement);
+        boolean hasSingletonEntityAnnotation = hasAnnotation(annotations, this.singletonEntityElement);
 
-        return false;
+        return hasEntityCollectionAnnotation || hasSingletonEntityAnnotation;
     }
 
     private boolean hasAnnotation(List<? extends AnnotationMirror> annotations, Element referenceType){
         for (AnnotationMirror annotation : annotations){
             DeclaredType annotationType = annotation.getAnnotationType();
-            if (referenceType.equals(annotationType)) return true;
+            if (referenceType.equals(annotationType.asElement())) return true;
+        }
+        return false;
+    }
+
+    private boolean hasAnnotation(Element element, Element referenceType){
+        for (AnnotationMirror annotation : element.getAnnotationMirrors()){
+            Element annotationElement = annotation.getAnnotationType().asElement();
+            if (referenceType.equals(annotationElement)) return true;
         }
         return false;
     }
 
     private void printMessage(HawthorneAnnotationMessage message, Element element){
         this.messager.printMessage(message.getKind(), message.getMessage(), element);
+    }
+
+    @Override
+    public SourceVersion getSupportedSourceVersion() {
+        return SourceVersion.latest();
     }
 }
