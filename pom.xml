@@ -35,6 +35,12 @@
         </developer>
     </developers>
 
+    <scm>
+        <connection>scm:git:git@github.com:George-Novikov/Hawthorne-Annotation-Processor.git</connection>
+        <developerConnection>scm:git:git@github.com:George-Novikov/Hawthorne-Annotation-Processor.git</developerConnection>
+        <url>https://github.com/George-Novikov/Hawthorne-Annotation-Processor</url>
+    </scm>
+
     <build>
         <plugins>
             <plugin>
@@ -56,6 +62,16 @@
                             <Implementation-Version>${project.version}</Implementation-Version>
                         </manifestEntries>
                     </archive>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-assembly-plugin</artifactId>
+                <version>3.7.1</version>
+                <configuration>
+                    <descriptorRefs>
+                        <descriptorRef>jar-with-dependencies</descriptorRef>
+                    </descriptorRefs>
                 </configuration>
             </plugin>
             <plugin>
@@ -91,6 +107,34 @@
                 <configuration>
                     <source>1.8</source>
                     <target>1.8</target>
+                </configuration>
+            </plugin>
+            <plugin>
+                <groupId>org.apache.maven.plugins</groupId>
+                <artifactId>maven-gpg-plugin</artifactId>
+                <version>1.5</version>
+                <executions>
+                    <execution>
+                        <id>sign-artifacts</id>
+                        <phase>verify</phase>
+                        <goals>
+                            <goal>sign</goal>
+                        </goals>
+                    </execution>
+                </executions>
+            </plugin>
+            <plugin>
+                <groupId>org.sonatype.central</groupId>
+                <artifactId>central-publishing-maven-plugin</artifactId>
+                <version>0.4.0</version>
+                <extensions>true</extensions>
+                <configuration>
+                    <publishingServerId>central</publishingServerId>
+                    <tokenAuth>true</tokenAuth>
+                    <autoPublish>true</autoPublish>
+                    <checksums>all</checksums>
+                    <waitUntil>published</waitUntil>
+                    <deploymentName>${project.groupId}:${project.artifactId}</deploymentName>
                 </configuration>
             </plugin>
         </plugins>
